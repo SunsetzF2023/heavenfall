@@ -1,4 +1,4 @@
-# Heavenfall 天宗棄徒
+# Heavenfall
 
 An original roguelike deck-building game set in a xianxia world where the Heavenly Dao has been corrupted by an otherworldly poison.
 
