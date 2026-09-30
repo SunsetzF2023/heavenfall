@@ -10,7 +10,16 @@ import { ENEMY_CARDS } from './enemy.js';
 
 export const CARDS = { ...COMMON_CARDS, ...LIUHEN_CARDS, ...FUSHAN_CARDS, ...ENEMY_CARDS };
 
-export const COMMON_POOL = ['feiti', 'lianhuan', 'zhamabu', 'shenhuxi', 'heshui', 'diushitou', 'lanlv', 'benpao', 'caidao', 'biandan', 'saotang', 'shihui', 'zhuangsi', 'wangbaquan', 'jiuming', 'shaobing', 'bandeng'];
+// 通用卡池：商店/包袱/升級獎勵的來源。事件限定牌（popi、醬菜等）與雜念不入池；
+// ★3 牌不入池，由盲盒或特定管道取得。
+export const COMMON_POOL = [
+  'feiti', 'lianhuan', 'zhamabu', 'shenhuxi', 'heshui', 'diushitou', 'lanlv', 'benpao',
+  'caidao', 'biandan', 'saotang', 'shihui', 'zhuangsi', 'wangbaquan', 'jiuming', 'shaobing', 'bandeng',
+  'chuanci', 'heiyu', 'xiaoshitou', 'pichai', 'geqian', 'kuangbao', 'nuichui', 'yaosui',
+  'zhuantou', 'zonghuo', 'jili', 'duye', 'konghe', 'lueduo',
+  'xuemeigui', 'yuejizhen', 'ezuoju', 'ganbei', 'zaji', 'chongfeng', 'xianxue', 'kanjianni',
+  'mudun', 'duanjian', 'fadima',
+];
 export const schoolPool = s => Object.keys(CARDS).filter(k => CARDS[k].school === s);
 export const cardPool = () => COMMON_POOL.concat(G.school ? schoolPool(G.school) : []);
 export const cname = ci => CARDS[ci.id].name + (ci.up ? '+' : '');

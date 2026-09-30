@@ -31,9 +31,19 @@ export const EVENTS = {
   wangsan: () => eventScreen('王三求饒', [`王三跪在地上：「${hero()}饒命！我上有八十歲老母……下有……下有一隻貓！」`], [
     { t: `饒他一命，讓他把錢吐出來（道心 +1，拿回被偷的 ${B.stolen} 銀兩，另 +3）`, f: () => { addDao(1); G.gold += B.stolen + 3; afterBattle(); } },
     { t: '搜刮一番（武魄 +1，銀兩 +8，學會「潑皮手段」）', f: () => { addWu(1); G.gold += 8 + B.stolen; G.deck.push(inst('popi')); afterBattle(); } },
+    ...(G.flags.met_wangmama ? [{ t: '把娘的話帶給他：「醬菜給你留著。」（道心 +1，他交出 5 銀兩）', f: () => { addDao(1); G.gold += 5; afterBattle(); } }] : []),
+  ]),
+  wangda: () => eventScreen('村霸落敗', ['王大趴在地上，嘴裡還不服：「打我？你知不知道我堂哥在外頭跑江湖，專門騙你們這種想出村的。他要是碰上你，你就完了。」', '你問堂哥是誰。王大啐了一口：「道上叫他清虛道長——狗屁道長，他叫王二狗！」'], [
+    { t: '「叫他別惹我。」（武魄 +1）', f: () => { addWu(1); afterBattle(); } },
+    { t: '「一家人整整齊齊，都別幹這行了。」（道心 +1）', f: () => { addDao(1); afterBattle(); } },
+  ]),
+  zhoutong: () => eventScreen('初選賽後', ['周通坐在地上喘氣，苦笑：「又輸了。第四屆了。」', '他抹了把臉：「上台去吧，別讓趙鐵柱等久了。他那人……拳頭硬，話糙，心不壞。」'], [
+    { t: '「明年再來。」（道心 +1，他塞你 5 銀兩「幫我買壺酒」）', f: () => { addDao(1); G.gold += 5; afterBattle(); } },
+    { t: '「承讓。」（武魄 +1）', f: () => { addWu(1); afterBattle(); } },
   ]),
   qingxu: () => eventScreen('假道士', ['「別打了別打了！貧道……不，小的叫王二狗，是王三他堂哥。」', '他懷裡掉出一本《如來神掌》，翻開一看，是《母豬的產後護理》。'], [
     { t: '把騙來的錢還給村民（道心 +1）', f: () => { addDao(1); afterBattle(); } },
     { t: '逼他交出真貨（武魄 +1，獲得一張隨機 ★★ 卡牌）', f: () => { addWu(1); const pool = cardPool().filter(k => CARDS[k].star === 2); const id = pick(pool, 1)[0]; G.deck.push(inst(id)); setNotice(`書的最後一頁竟然是真的：獲得【${CARDS[id].name}】`); afterBattle(); } },
+    ...(G.deck.some(c => c.id === 'jiangcai') ? [{ t: '丟給他一罐娘的醬菜（道心 +1，他把騙來的錢全吐了：銀兩 +15）', f: () => { addDao(1); G.gold += 15; G.deck = G.deck.filter(c => c.id !== 'jiangcai'); afterBattle(); } }] : []),
   ]),
 };

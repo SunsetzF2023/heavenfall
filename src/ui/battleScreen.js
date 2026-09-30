@@ -20,6 +20,13 @@ export function renderBattle() {
     if (u.st.shanhun) s.push(`山魂×${u.st.shanhun}`);
     if (u.st.henlie) s.push(`痕裂×${u.st.henlie}`);
     if (u.st.apDown) s.push('下回合行動力-1');
+    if (u.st.drawDown) s.push(`下回合少抽${u.st.drawDown}張`);
+    if (u.st.drawDiscard) s.push('抽牌時會丟牌');
+    if (u.st.poison) s.push(`中毒${u.st.poison}`);
+    if (u.st.burn) s.push(`燒傷${u.st.burn}`);
+    if (u.st.doom) s.push(`血光之災${u.st.doom}回合`);
+    if (u.st.silenced) s.push('下一張牌被震懾');
+    if (u.st.dmgUp) s.push(`傷害+${u.st.dmgUp}`);
     if (u.xihen) s.push('吸痕');
     return s.length ? '狀態：' + s.join('、') : '';
   };

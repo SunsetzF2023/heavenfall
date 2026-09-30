@@ -8,8 +8,9 @@ import { B, G, render, setB, setS } from '../state.js';
 import { CARDS, cname, cost } from '../cards/index.js';
 import { ENEMIES } from '../enemies.js';
 import {
-  addHen, applyDamage, armor, canPlay, draw, equippedList, equipHook,
-  heal, keepRatio, log, mkUnit, resolveCard,
+  addHen, applyDamage, armor, burnTick, canPlay, draw, equippedList, equipHook,
+  heal, keepRatio, log, mkUnit, onDrawPick, resolveCard, sweepEnemyDeck,
+  sweepHand, turnStartTick,
 } from './combat.js';
 import { flashCard, FX, later } from '../ui/dom.js';
 import { renderBattle } from '../ui/battleScreen.js';
@@ -23,7 +24,7 @@ export function startBattle(key, onWin) {
   e.deck = d.deck.map(id => inst(id));
   setB({ p, e, def: d, key, turn: 0, log: [], phase: 'player', onWin, stolen: 0, showEnemyDeck: false });
   log(`遭遇【${d.name}】（Lv${d.lv}）！`);
-  if (d.intro) log(d.intro);
+  if (d.intro) log(typeof d.intro === 'function' ? d.intro() : d.intro);
   for (const { ci, d: ed } of equippedList()) {
     if (ed.eq.turnStart) ed.eq.turnStart(ci.up);
     if (ed.eq.battleStart) ed.eq.battleStart(ci.up);
@@ -37,6 +38,8 @@ export function startBattle(key, onWin) {
 function playerTurnStart() {
   const p = B.p; B.turn++;
   log(`—— 第 ${B.turn} 回合 ——`);
+  turnStartTick(p);
+  if (checkEnd()) return;
   if (B.turn > 1) {
     if (p.st.huishan) { p.st.huishan = 0; log('回山：護甲全部保留'); }
     else if (p.passive === 'fushan') { p.armor = Math.floor(p.armor * keepRatio()); if (p.armor) log(`山勢：保留 ${p.armor} 護甲`); }
@@ -61,27 +64,35 @@ export function playerPlay(i) {
   log(`▶ 你打出【${cname(ci)}】`);
   flashCard(ci, 'me', '你打出');
   resolveCard(p, B.e, ci);
+  burnTick(p);
   if (CARDS[ci.id].exile) p.removed.push(ci);
   if (!checkEnd()) render();
 }
 export function endTurn() {
   if (B.phase !== 'player') return;
   if (B.p.hand.length > G.handSize) { B.phase = 'discard'; render(); return; }
+  sweepHand(B.p);
+  equipHook('turnEnd');
+  if (checkEnd()) return;
   enemyTurn();
 }
 export function discard(i) {
   const ci = B.p.hand.splice(i, 1)[0]; log(`棄掉【${cname(ci)}】`);
   if (B.p.hand.length <= G.handSize) enemyTurn(); else render();
 }
-const AI_ORDER = { '吐納': 0, '身法': 1, '神通': 1, '反制': 2, '武技': 3 };
+const AI_ORDER = { '吐納': 0, '身法': 1, '神通': 1, '反制': 2, '雜念': 3, '武技': 4 };
 function enemyTurn() {
   const e = B.e, p = B.p;
   B.phase = 'enemy';
   log(`—— ${e.name} 的回合 ——`);
   e.armor = 0; e.st.atkCount = 0;
+  turnStartTick(e);
+  if (e.hp <= 0) { enemyEnd(); return; }
   if (e.xihen && e.hen > 0) { log('吸痕！'); heal(e, e.hen); }
   e.ap = Math.max(0, e.apMax - (e.st.apDown || 0)); if (e.st.apDown) log(`${e.name} 被山嶽鎮壓，行動力 -1`); e.st.apDown = 0;
-  const hand = pick(e.deck, e.draw).sort((a, b) => AI_ORDER[CARDS[a.id].type] - AI_ORDER[CARDS[b.id].type]);
+  const drawN = Math.max(0, e.draw - (e.st.drawDown || 0)); e.st.drawDown = 0;
+  const hand = pick(e.deck, drawN).sort((a, b) => AI_ORDER[CARDS[a.id].type] - AI_ORDER[CARDS[b.id].type]);
+  onDrawPick(e, hand);
   e.pile = shuffle(e.deck.filter(c => !hand.includes(c)));
   e.queue = hand;
   render();
@@ -91,12 +102,13 @@ function enemyStep() {
   const e = B.e, p = B.p;
   while (e.queue.length && e.hp > 0 && p.hp > 0) {
     const ci = e.queue.shift();
-    if (!canPlay(e, p, ci)) { log(`（${e.name} 想打【${cname(ci)}】，但資源不足）`); continue; }
+    if (!canPlay(e, p, ci)) { log(`（${e.name} 想打【${cname(ci)}】，但打不出來）`); continue; }
     const c = cost(CARDS[ci.id], ci.up); e.ap -= c.ap; e.qi -= c.qi;
     const trap = CARDS[ci.id].type === '反制';
     log(`◀ ${e.name} 打出【${trap ? '？？？' : cname(ci)}】${trap ? '' : '：' + CARDS[ci.id].text(ci.up)}`);
     flashCard(ci, 'foe', `${e.name} 打出`, trap);
     resolveCard(e, p, ci);
+    burnTick(e);
     render();
     later(e.hp > 0 && p.hp > 0 ? enemyStep : enemyEnd, FX.step);
     return;
@@ -105,6 +117,7 @@ function enemyStep() {
 }
 function enemyEnd() {
   const e = B.e, p = B.p;
+  sweepEnemyDeck(e);
   if (e.hp > 0 && e.st.henlie && e.hen > 0) { log('痕裂！'); applyDamage(null, e, e.st.henlie * e.hen, true); }
   if (checkEnd()) return;
   playerTurnStart();

@@ -51,13 +51,19 @@ function prologue() {
 function quickStart() {
   G.stage = 'wild';
   G.level = 3; G.exp = 7; G.maxHp = 26; G.hp = 26; G.handSize = 4; G.gold = 30; G.baseQi = 2;
+  G.flags.quick = true;
   ['feiti', 'zhamabu', 'shenhuxi'].forEach(id => G.deck.push(inst(id)));
   tournament();
 }
 export function tournament() {
-  setS(() => show(h('h2', null, '武道大比'),
-    say('鎮上搭起了擂台，橫幅寫著：「第一屆武道界新人大比——贏了進武道界，輸了回家種田」。'),
-    say('台下有兩位師父在招徒弟。'),
+  eventScreen('武道大比・報名處', [
+    '鎮上搭起了擂台，橫幅寫著：「第一屆武道界新人大比——贏了進武道界，輸了回家種田」。',
+    '報名處的師傅叼著筆打量你：「凡人界來的？行，先打個初選。對了——台上不許哭。」',
+  ], [{ t: '報名上台', f: () => startBattle('zhoutong', mastersMeet) }]);
+}
+function mastersMeet() {
+  setS(() => show(h('h2', null, '武道大比・拜師'),
+    say('贏了初選。台下兩位師父同時站了起來，目光灼灼地盯著你——原來他們一直在等一塊好料子。'),
     ['liuhen', 'fushan'].map(k => { const s = SCHOOLS[k];
       return h('div', { cls: 'box' }, h('h3', null, `${s.name}「${s.motto}」— 師父 ${s.master}`), say(s.masterSay),
         h('div', { cls: 'dim' }, `流派被動：${s.passive}`),
@@ -71,19 +77,45 @@ function chooseSchool(k) {
   const s = SCHOOLS[k];
   const ids = pick(schoolPool(k).filter(id => CARDS[id].type !== '兵器' && !s.starter.includes(id) && CARDS[id].star <= 2), 3);
   eventScreen(`拜入${s.name}`, [`${s.master}：「好，今天起你就是${s.name}的人了。上台前，再挑一招。」`, `（已加入入門牌：${s.starter.map(id => CARDS[id].name).join('、')}）`],
-    ids.map(id => ({ t: `【${CARDS[id].name}】${stars(CARDS[id])}〔${CARDS[id].type}〕${CARDS[id].text(false)}`, f: () => { G.deck.push(inst(id)); bossIntro(); } })));
+    ids.map(id => ({ t: `【${CARDS[id].name}】${stars(CARDS[id])}〔${CARDS[id].type}〕${CARDS[id].text(false)}`, f: () => { G.deck.push(inst(id)); masterGift(k); } })));
+}
+function masterGift(k) {
+  const gift = k === 'liuhen' ? 'lh_kedao' : 'fs_zhongdun';
+  const s = SCHOOLS[k], other = SCHOOLS[k === 'liuhen' ? 'fushan' : 'liuhen'];
+  const quip = k === 'liuhen' ? '冷哼：「哼，玩刀的。哪天被砍了別說我沒提醒。」（他嘟囔著把一塊石碑扛走了）'
+    : '撇嘴：「搬家的？行吧，練好了去給我理髮店搬椅子也算學有所成。」';
+  eventScreen(`${s.name}・入門禮`, [
+    `${s.master}塞給你一個包袱：「入門禮，別說我摳。」（獲得兵器【${CARDS[gift].name}】）`,
+    `另一邊，${other.master}${quip}`,
+  ], [{ t: '收下', f: () => { G.deck.push(inst(gift)); betScreen(); } }]);
+}
+function betScreen() {
+  eventScreen('賭坊開盤', [
+    '擂台邊的賭坊扯開嗓子：「決賽開盤！新人一賠一點五，押不押？」',
+    '掌櫃敲著算盤：「押注十兩起，封頂三十兩。贏了連本帶利，輸了——回家種田。」',
+  ], [
+    { t: '押 10 兩（贏了返 15）', dis: G.gold < 10, f: () => { G.gold -= 10; G.bet = 10; bossIntro(); } },
+    { t: '押 30 兩・封頂（贏了返 45）', dis: G.gold < 30, f: () => { G.gold -= 30; G.bet = 30; bossIntro(); } },
+    { t: '不押，直接上台', f: bossIntro },
+  ]);
 }
 function bossIntro() {
-  eventScreen('決賽', ['一路打到決賽，對面站著一個赤膊大漢，胸口紋著「鐵柱」兩個字。', '「趙鐵柱，連續三屆擂台霸主。新人，拳頭就是道理。」'], [
+  const line = G.flags.quick ? '「喲，直接保送決賽的？有後台啊。」'
+    : G.flags.beat_zhoutong ? '「周通都打不過我的人，每年都有。你比他們強點——但也有限。」'
+    : '「趙鐵柱，連續三屆擂台霸主。新人，拳頭就是道理。」';
+  eventScreen('決賽', ['一路打到決賽，對面站著一個赤膊大漢，胸口紋著「鐵柱」兩個字。', line], [
     { t: '整理牌組／兵器', f: () => deckScreen(bossIntro) },
     { t: '上台！', f: () => startBattle('boss', ending) },
   ]);
 }
 function ending() {
+  const betWin = G.bet ? Math.floor(G.bet * 1.5) : 0;
+  if (betWin) G.gold += betWin;
   setS(() => show(h('h2', null, '第一章　完'),
     say('趙鐵柱躺在台上喘著粗氣：「你……不錯。去極武閣吧，那裡才是武道的頂點……」'),
     say('他頓了頓，壓低聲音：「不過……閣裡練到最深的那些人……已經不太像人了。」'),
     say('你握緊拳頭。父親的遺願，才剛開始。'),
+    betWin ? say(`賭坊掌櫃苦著臉把銀子送上來：「一賠一點五……拿去。」（銀兩 +${betWin}）`) : null,
     h('div', { cls: 'box' }, `本局：${SCHOOLS[G.school].name}・Lv${G.level}・牌組 ${G.deck.length} 張・道心 ${G.dao}・武魄 ${G.wu}・銀兩 ${G.gold}`),
     para('Demo 到此結束。第二章：極武閣（待製作）'), btn('再來一局', titleScreen)));
   render();

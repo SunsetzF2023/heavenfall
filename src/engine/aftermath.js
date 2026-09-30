@@ -8,6 +8,7 @@ import { CARDS, cardPool, cname } from '../cards/index.js';
 import { SKILLS } from '../schools.js';
 import { btn, h, para, show } from '../ui/dom.js';
 import { EVENTS } from '../events.js';
+import { lootScreen } from '../ui/lootScreen.js';
 import { titleScreen } from '../story.js';
 
 export function winBattle() {
@@ -19,7 +20,7 @@ export function winBattle() {
   for (const k in G.skillCd) if (G.skillCd[k] > 0) G.skillCd[k]--;
   G.flags['beat_' + B.key] = true;
   setS(() => show(h('h2', null, `擊敗了 ${d.name}！`), h('div', { cls: 'box log' }, B.log.slice(-8).join('\n')),
-    para(`獲得經驗 ${d.exp}、銀兩 ${gold}。`), btn('繼續', afterBattle)));
+    para(`獲得經驗 ${d.exp}、銀兩 ${gold}。`), btn('繼續', lootScreen)));
   render();
 }
 export function afterBattle() {
