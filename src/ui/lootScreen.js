@@ -32,7 +32,7 @@ export function lootScreen() {
     const boxCls = { ready: 'lootbox ready', shake: 'lootbox shake', boom: 'lootbox boom' }[st.phase] || 'lootbox';
     const stage = h('div', { cls: 'lootstage' },
       st.phase === 'fly' ? flies.map(f => h('div', { cls: 'lootfly', style: `--sx:${f.sx}px;--sy:${f.sy}px;animation-delay:${f.delay}ms` })) : null,
-      st.phase !== 'reveal' ? h('div', { cls: boxCls, onclick: st.phase === 'ready' ? open : null }, '箱') : null,
+      st.phase !== 'reveal' ? h('div', { cls: boxCls, onclick: st.phase === 'ready' ? open : null }, '盲盒') : null,
       st.phase === 'reveal' && drop ? h('div', { cls: 'fcard reveal' },
         h('div', { cls: 'who' }, '開出'),
         h('div', { cls: 'n' }, cname(drop)),
