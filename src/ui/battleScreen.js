@@ -35,7 +35,7 @@ export function renderBattle() {
     h('span', { cls: 'qi' }, `真氣 ${u.qi}`), h('span', { cls: 'ap' }, `行動力 ${u.ap}${u.isPlayer ? '' : '/' + u.apMax}`),
     h('span', { cls: 'hen' }, `痕 ${u.hen}/${u.henCap}`));
   const eBox = h('div', { cls: 'box' },
-    h('h3', null, `${B.def.boss ? '【首領】' : B.def.elite ? '【精英】' : ''}${e.name}　Lv${B.def.lv}`), unitLine(e),
+    h('h3', null, `${B.def.boss ? '【首領】' : B.def.elite ? '【精英】' : ''}${e.name}　Lv${e.lv}`), unitLine(e),
     h('div', { cls: 'dim' }, stTxt(e), e.traps.length ? `　暗置反制 ${e.traps.length} 張` : '', `　每回合抽 ${e.draw} 張`),
     btn(B.showEnemyDeck ? '收起敵人牌組' : '查看敵人牌組', () => { B.showEnemyDeck = !B.showEnemyDeck; render(); }),
     B.showEnemyDeck ? h('div', { cls: 'dim' }, e.deck.map(ci => `【${cname(ci)}】${CARDS[ci.id].type}${costStr(ci)}：${CARDS[ci.id].text(ci.up)}`).join('\n').split('\n').map(t => h('div', null, t))) : null);

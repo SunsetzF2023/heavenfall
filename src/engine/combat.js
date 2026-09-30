@@ -110,7 +110,7 @@ export function attack(src, tgt, base, o) {
   let total = 0;
   for (let i = 0; i < hits; i++) {
     if (tgt.hp <= 0 || src.hp <= 0) break;
-    let d = (base + (i === 0 ? bonus : 0) + (src.st.dmgUp || 0)) * mult;
+    let d = (base + (i === 0 ? bonus : 0) + (src.st.dmgUp || 0) + (src.st.dmgScale || 0)) * mult;
     if (mods.halve) d = Math.floor(d / 2);
     total += applyDamage(src, tgt, d, o.pierce, mods);
     if (tgt.st.fanzhen && o.weapon) { log(`反震！`); applyDamage(tgt, src, tgt.st.fanzhen, false); }

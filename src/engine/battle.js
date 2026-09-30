@@ -18,12 +18,21 @@ import { gameOver, winBattle } from './aftermath.js';
 
 export function startBattle(key, onWin) {
   const d = ENEMIES[key];
+  // 敵人隨主角等級動態成長：等級取兩者較高，差值換算血量/傷害/抽牌
+  const sl = Math.max(0, G.level - d.lv);
+  const hpBonus = sl * (d.boss ? 6 : d.elite ? 4 : 3);
+  const drawBonus = (d.elite || d.boss) && sl >= 3 ? 1 : 0;
   const p = mkUnit({ name: G.name, isPlayer: true, maxHp: G.maxHp, hp: G.hp, apMax: G.apMax, qi: G.baseQi, passive: G.school });
   p.battleDeck = G.deck.filter(c => CARDS[c.id].type !== '兵器');
-  const e = mkUnit({ name: d.name, maxHp: d.hp, hp: d.hp, apMax: d.ap, qi: d.qi, draw: d.draw, xihen: d.xihen });
+  const e = mkUnit({ name: d.name, maxHp: d.hp + hpBonus, hp: d.hp + hpBonus, apMax: d.ap, qi: d.qi, draw: d.draw + drawBonus, xihen: d.xihen });
+  e.lv = d.lv + sl;
   e.deck = d.deck.map(id => inst(id));
   setB({ p, e, def: d, key, turn: 0, log: [], phase: 'player', onWin, stolen: 0, showEnemyDeck: false });
-  log(`遭遇【${d.name}】（Lv${d.lv}）！`);
+  log(`遭遇【${d.name}】（Lv${e.lv}）！`);
+  if (sl > 0) {
+    e.st.dmgScale = Math.floor(sl / 2);
+    log(`對手也隨你的成長變強了（生命 +${hpBonus}${e.st.dmgScale ? `，傷害 +${e.st.dmgScale}` : ''}${drawBonus ? '，抽牌 +1' : ''}）`);
+  }
   if (d.intro) log(typeof d.intro === 'function' ? d.intro() : d.intro);
   for (const { ci, d: ed } of equippedList()) {
     if (ed.eq.turnStart) ed.eq.turnStart(ci.up);
@@ -45,7 +54,7 @@ function playerTurnStart() {
     else if (p.passive === 'fushan') { p.armor = Math.floor(p.armor * keepRatio()); if (p.armor) log(`山勢：保留 ${p.armor} 護甲`); }
     else p.armor = 0;
   }
-  p.st.fanzhen = 0; p.st.atkCount = 0; p.st.ninghen = 0; p.st.wuhen = 0;
+  p.st.fanzhen = 0; p.st.atkCount = 0; p.st.ninghen = 0; p.st.wuhen = 0; p.st.dmgUp = 0;
   if (p.st.shanhun) armor(p, 4 * p.st.shanhun);
   if (B.turn > 1) equipHook('turnStart');
   p.ap = Math.max(p.ap, p.apMax);
@@ -85,7 +94,7 @@ function enemyTurn() {
   const e = B.e, p = B.p;
   B.phase = 'enemy';
   log(`—— ${e.name} 的回合 ——`);
-  e.armor = 0; e.st.atkCount = 0;
+  e.armor = 0; e.st.atkCount = 0; e.st.dmgUp = 0;
   turnStartTick(e);
   if (e.hp <= 0) { enemyEnd(); return; }
   if (e.xihen && e.hen > 0) { log('吸痕！'); heal(e, e.hen); }
