@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Heavenfall・第一章 Demo（文字版）</title>
+<title>天宗棄徒・第一章 Demo（文字版）</title>
 <style>
 body{background:#14110f;color:#e8e0d0;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;margin:0;padding:12px;line-height:1.6}
 #app{max-width:900px;margin:0 auto}
@@ -48,9 +48,9 @@ const inst = (id, up = false) => ({ id, up, uid: UID++ });
 
 /* ================= 可調數值 ================= */
 const CFG = {
-  startHp: 30, startAp: 1, startQi: 1, handSize: 3, henCap: 4,
-  expTable: [0, 3, 7, 12, 18, 25],   // 到達 Lv(n+1) 所需累積經驗
-  startGold: 10, pagesBeforeFinal: 10,
+  startHp: 20, startAp: 1, startQi: 1, handSize: 3, henCap: 4,
+  expTable: [0, 3, 7, 12, 18, 25, 33, 42, 52, 63, 75],   // 到達 Lv(n+1) 所需累積經驗
+  startGold: 10,
   price: { 1: 8, 2: 15, 3: 25 },
 };
 
@@ -63,7 +63,7 @@ const CARDS = {
   quanjiao: { name: '拳腳', type: '武技', star: 1, text: u => `造成 ${v(u, 2, 3)} 傷害`, play: c => c.atk(v(c.u, 2, 3)) },
   gedang: { name: '格擋', type: '身法', star: 1, ap: 1, text: u => `獲得 ${v(u, 4, 6)} 護甲`, play: c => armor(c.me, v(c.u, 4, 6)) },
   tuna: { name: '吐納', type: '吐納', star: 1, text: u => `真氣 +${v(u, 2, 3)}`, play: c => gainQi(c.me, v(c.u, 2, 3)) },
-  liaoshang: { name: '療傷', type: '神通', star: 1, qi: 2, text: u => `回復 ${v(u, 5, 8)} 生命`, play: c => heal(c.me, v(c.u, 5, 8)) },
+  qijin: { name: '氣勁', type: '神通', star: 1, qi: 2, text: u => `造成 ${v(u, 5, 8)} 傷害`, play: c => c.atk(v(c.u, 5, 8)) },
   manjin: { name: '蠻勁', type: '神通', star: 1, qi: 1, text: u => `造成 ${v(u, 5, 7)} 傷害`, play: c => c.atk(v(c.u, 5, 7)) },
   // ---- 通用（商店/寶物/升級） ----
   feiti: { name: '飛踢', type: '武技', star: 1, text: u => `造成 ${v(u, 4, 6)} 傷害`, play: c => c.atk(v(c.u, 4, 6)) },
@@ -76,8 +76,21 @@ const CARDS = {
   benpao: { name: '奔跑', type: '身法', star: 2, ap: 1, text: u => `行動力 +${v(u, 2, 3)}`, play: c => gainAp(c.me, v(c.u, 2, 3)) },
   caidao: { name: '菜刀', type: '兵器', star: 1, text: u => `每回合第一張武技 +${v(u, 2, 3)} 傷害`, eq: { firstAtkBonus: u => v(u, 2, 3) } },
   biandan: { name: '扁擔', type: '兵器', star: 1, text: u => `戰鬥開始獲得 ${v(u, 5, 8)} 護甲`, eq: { battleStart: u => armor(B.p, v(u, 5, 8)) } },
-  baozi: { name: '熱包子', type: '吐納', star: 1, exile: true, text: u => `回復 ${v(u, 4, 6)} 生命。移除`, play: c => heal(c.me, v(c.u, 4, 6)) },
+  baozi: { name: '熱包子', type: '吐納', star: 1, exile: true, text: u => `真氣 +${v(u, 2, 3)}，抽 1 張。移除`, play: c => { gainQi(c.me, v(c.u, 2, 3)); draw(c.me, 1); } },
   cz_card: { name: '村長的叮囑', type: '神通', star: 2, qi: 1, qiU: 0, text: u => `抽 2 張，本回合下一張武技 +3 傷害`, play: c => { draw(c.me, 2); c.me.st.nextAtk = (c.me.st.nextAtk || 0) + 3; } },
+  saotang: { name: '掃堂腿', type: '武技', star: 2, text: u => `造成 ${v(u, 3, 4)} 傷害，敵人下回合行動力 -1`, play: c => { c.atk(v(c.u, 3, 4)); c.foe.st.apDown = 1; } },
+  shihui: { name: '撒石灰', type: '反制', star: 2, ap: 1, apU: 0, text: u => `暗置。敵人下一張武技無效，你抽 1 張`, trap: { trigger: 'attack', fire: t => { draw(t.me, 1); return { negate: true }; } } },
+  zhuangsi: { name: '裝死', type: '身法', star: 1, ap: 1, text: u => `獲得 ${v(u, 7, 10)} 護甲`, play: c => armor(c.me, v(c.u, 7, 10)) },
+  wangbaquan: { name: '王八拳', type: '武技', star: 2, text: u => `造成 1 傷害 ×X，X＝打出後的手牌數${u ? '+1' : ''}`, play: c => c.atk(1, { hits: Math.max(1, c.me.hand.length + v(c.u, 0, 1)) }) },
+  jiuming: { name: '大喊救命', type: '神通', star: 1, qi: 1, qiU: 0, text: u => `抽 ${v(u, 2, 3)} 張`, play: c => draw(c.me, v(c.u, 2, 3)) },
+  shaobing: { name: '燒餅', type: '吐納', star: 1, exile: true, text: u => `真氣 +2，獲得 ${v(u, 3, 5)} 護甲。移除`, play: c => { gainQi(c.me, 2); armor(c.me, v(c.u, 3, 5)); } },
+  bandeng: { name: '板凳', type: '兵器', star: 2, text: u => `每回合開始獲得 ${v(u, 2, 3)} 護甲`, eq: { turnStart: u => armor(B.p, v(u, 2, 3)) } },
+  yunqiu: { name: '運球', type: '身法', star: 1, ap: 1, text: u => `抽 1 張，下一次攻擊 +${v(u, 2, 3)}`, play: c => { draw(c.me, 1); c.me.st.nextAtk = (c.me.st.nextAtk || 0) + v(c.u, 2, 3); } },
+  lanqiu: { name: '籃球', type: '兵器', star: 2, text: u => `戰鬥開始真氣 +${v(u, 1, 2)}`, eq: { battleStart: u => gainQi(B.p, v(u, 1, 2)) } },
+  shehuiyao: { name: '社會搖', type: '身法', star: 2, ap: 1, text: u => `獲得 ${v(u, 4, 6)} 護甲，行動力 +1`, play: c => { armor(c.me, v(c.u, 4, 6)); gainAp(c.me, 1); } },
+  // ---- 雜念（敵人塞進你牌庫，只存在於本場戰鬥） ----
+  j_xianyan: { name: '閒言碎語', type: '身法', ap: 1, exile: true, text: () => '什麼也不做。移除（不打就一直佔手牌）', play: () => log('你把閒話拋到腦後') },
+  j_huiqi: { name: '晦氣', type: '吐納', exile: true, text: () => '失去 2 生命。移除（不打就一直佔手牌）', play: c => loseHp(c.me, 2) },
   popi: { name: '潑皮手段', type: '武技', star: 1, text: u => `造成 ${v(u, 3, 4)} 傷害，銀兩 +1`, play: c => { c.atk(v(c.u, 3, 4)); if (c.me.isPlayer) G.gold += 1; } },
 
   // ---- 留痕 ----
@@ -130,7 +143,7 @@ const CARDS = {
   fs_weiran: { school: 'fushan', name: '巍然', type: '反制', star: 2, ap: 1, apU: 0, text: u => `暗置。敵人下一張武技：先獲得等於其傷害的護甲，傷害減半`, trap: { trigger: 'attack', fire: () => ({ halve: true, armorFromDmg: true }) } },
   fs_huizhen: { school: 'fushan', name: '回震', type: '反制', star: 2, ap: 1, apU: 0, text: u => `暗置。敵人下一張武技被護甲擋下的傷害，全數打回去`, trap: { trigger: 'attack', fire: () => ({ reflect: true }) } },
   fs_zhongdun: { school: 'fushan', name: '重盾', type: '兵器', star: 1, text: u => `戰鬥開始獲得 ${v(u, 8, 11)} 護甲`, eq: { battleStart: u => armor(B.p, v(u, 8, 11)) } },
-  fs_kaishan: { school: 'fushan', name: '開山斧', type: '兵器', star: 2, text: u => `每次「崩」，回復 ${v(u, 3, 5)} 生命`, eq: { onBeng: u => heal(B.p, v(u, 3, 5)) } },
+  fs_kaishan: { school: 'fushan', name: '開山斧', type: '兵器', star: 2, text: u => `每次「崩」，獲得 ${v(u, 3, 5)} 護甲`, eq: { onBeng: u => armor(B.p, v(u, 3, 5)) } },
   fs_fushi: { school: 'fushan', name: '負石', type: '兵器', star: 2, text: u => `山勢改為保留 3/4 護甲${u ? '' : '；行動力上限 -1'}`, eq: { keep: () => 0.75, apMaxMod: u => v(u, -1, 0) } },
   fs_fenshan: { school: 'fushan', name: '殘頁・焚山', type: '武技', star: 3, beng: true, text: u => `崩：消耗全部護甲和一半生命，造成 3 倍${u ? '+5' : ''}傷害（被污染的殘頁，第 3 章可淨化）`, play: c => { const a = beng(c); loseHp(c.me, Math.floor(c.me.hp / 2)); c.atk(a * 3 + v(c.u, 0, 5)); } },
 
@@ -155,9 +168,47 @@ const CARDS = {
   e_tiebi: { name: '鐵臂', type: '身法', ap: 1, text: () => '獲得 8 護甲', play: c => armor(c.me, 8) },
   e_xuli: { name: '蓄力', type: '神通', qi: 2, text: () => '下一次攻擊傷害翻倍', play: c => { c.me.st.nextDouble = 1; } },
   e_yunqi: { name: '運氣', type: '吐納', text: () => '真氣 +2', play: c => gainQi(c.me, 2) },
+  // 李大嘴
+  e_tiaobo: { name: '煽風點火', type: '神通', qi: 1, text: () => '往你的牌庫塞 2 張「閒言碎語」', play: c => junk(c.foe, 'j_xianyan', 2) },
+  e_zuipao: { name: '嘴炮', type: '武技', text: () => '造成 2 傷害', play: c => c.atk(2) },
+  e_hanren: { name: '喊人', type: '身法', ap: 1, text: () => '下一次攻擊 +3', play: c => { c.me.st.nextAtk = (c.me.st.nextAtk || 0) + 3; } },
+  e_guazi: { name: '嗑瓜子', type: '吐納', text: () => '真氣 +2', play: c => gainQi(c.me, 2) },
+  // 劉半仙
+  e_qiazhi: { name: '掐指一算', type: '反制', text: () => '暗置。你的下一張武技無效', trap: { trigger: 'attack', fire: () => ({ negate: true }) } },
+  e_xueguang: { name: '血光之災', type: '神通', qi: 2, text: () => '造成 4 穿刺傷害', play: c => c.atk(4, { pierce: true }) },
+  e_yintang: { name: '你印堂發黑', type: '神通', qi: 1, text: () => '往你的牌庫塞 1 張「晦氣」', play: c => junk(c.foe, 'j_huiqi', 1) },
+  e_kaiguang: { name: '開光', type: '吐納', text: () => '真氣 +2', play: c => gainQi(c.me, 2) },
+  // 黃毛阿杰
+  e_shehuiyao: { name: '社會搖', type: '身法', ap: 1, text: () => '獲得 5 護甲', play: c => armor(c.me, 5) },
+  e_shuaitou: { name: '甩頭', type: '武技', text: () => '造成 3 傷害', play: c => c.atk(3) },
+  e_laotie: { name: '老鐵666', type: '吐納', text: () => '真氣 +1，下一次攻擊 +2', play: c => { gainQi(c.me, 1); c.me.st.nextAtk = (c.me.st.nextAtk || 0) + 2; } },
+  e_jiaoxiongdi: { name: '叫兄弟', type: '神通', qi: 2, text: () => '造成 2 傷害 ×3', play: c => c.atk(2, { hits: 3 }) },
+  // 小坤子
+  e_yunqiu: { name: '運球', type: '身法', ap: 1, text: () => '獲得 3 護甲，下一次攻擊 +2', play: c => { armor(c.me, 3); c.me.st.nextAtk = (c.me.st.nextAtk || 0) + 2; } },
+  e_kuaxia: { name: '胯下運球', type: '反制', text: () => '暗置。你的下一張武技無效', trap: { trigger: 'attack', fire: () => ({ negate: true }) } },
+  e_guanlan: { name: '灌籃', type: '武技', text: () => '造成 6 傷害', play: c => c.atk(6) },
+  e_changtiao: { name: '唱跳 Rap', type: '吐納', text: () => '真氣 +2', play: c => gainQi(c.me, 2) },
+  e_jinitaimei: { name: '雞你太美', type: '神通', qi: 2, text: () => '造成 3 傷害 ×2', play: c => c.atk(3, { hits: 2 }) },
+  // 野獸
+  e_chongzhuang: { name: '衝撞', type: '武技', text: () => '造成 7 傷害', play: c => c.atk(7) },
+  e_pizao: { name: '皮糙肉厚', type: '身法', ap: 1, text: () => '獲得 6 護甲', play: c => armor(c.me, 6) },
+  e_langhao: { name: '狼嚎', type: '身法', text: () => '下一次攻擊 +3', play: c => { c.me.st.nextAtk = (c.me.st.nextAtk || 0) + 3; } },
+  e_liya: { name: '利牙', type: '武技', text: () => '造成 2 傷害 ×2', play: c => c.atk(2, { hits: 2 }) },
+  e_duya: { name: '毒牙', type: '武技', text: () => '造成 2 穿刺傷害', play: c => c.atk(2, { pierce: true }) },
+  e_chanrao: { name: '纏繞', type: '身法', text: () => '你下回合行動力 -1', play: c => { c.foe.st.apDown = 1; } },
+  e_touqian: { name: '順手牽羊', type: '武技', text: () => '造成 1 傷害，偷走 2 銀兩', play: c => { c.atk(1); if (c.foe.isPlayer) { const s = Math.min(2, G.gold); G.gold -= s; B.stolen += s; log(`${c.me.name} 搶走你 ${s} 銀兩！`); } } },
+  e_xiangjiao: { name: '香蕉皮', type: '反制', text: () => '暗置。你的下一張武技無效', trap: { trigger: 'attack', fire: () => ({ negate: true }) } },
+  e_zhuanao: { name: '抓撓', type: '武技', text: () => '造成 2 傷害 ×2', play: c => c.atk(2, { hits: 2 }) },
   e_tietou: { name: '鐵頭功', type: '武技', text: () => '造成 3 穿刺傷害', play: c => c.atk(3, { pierce: true }) },
+  // 村霸王大
+  e_baohufei: { name: '收保護費', type: '武技', text: () => '造成 3 傷害，偷走 4 銀兩', play: c => { c.atk(3); if (c.foe.isPlayer) { const s = Math.min(4, G.gold); G.gold -= s; B.stolen += s; log(`王大收走你 ${s} 銀兩「保護費」！`); } } },
+  // 吊睛白額虎
+  e_hupu: { name: '猛虎撲食', type: '武技', text: () => '造成 7 傷害', play: c => c.atk(7) },
+  e_huxiao: { name: '虎嘯山林', type: '身法', ap: 1, text: () => '獲得 4 護甲，下一次攻擊 +3', play: c => { armor(c.me, 4); c.me.st.nextAtk = (c.me.st.nextAtk || 0) + 3; } },
+  // 黑風寨二當家
+  e_feidao: { name: '飛刀', type: '神通', qi: 1, text: () => '造成 2 傷害 ×3', play: c => c.atk(2, { hits: 3 }) },
 };
-const COMMON_POOL = ['feiti', 'lianhuan', 'zhamabu', 'shenhuxi', 'heshui', 'diushitou', 'lanlv', 'benpao', 'caidao', 'biandan'];
+const COMMON_POOL = ['feiti', 'lianhuan', 'zhamabu', 'shenhuxi', 'heshui', 'diushitou', 'lanlv', 'benpao', 'caidao', 'biandan', 'saotang', 'shihui', 'zhuangsi', 'wangbaquan', 'jiuming', 'shaobing', 'bandeng'];
 const schoolPool = s => Object.keys(CARDS).filter(k => CARDS[k].school === s);
 const cardPool = () => COMMON_POOL.concat(G.school ? schoolPool(G.school) : []);
 const cname = ci => CARDS[ci.id].name + (ci.up ? '+' : '');
@@ -169,9 +220,20 @@ const stars = d => d.star ? '★'.repeat(d.star) : '';
 const ENEMIES = {
   dog: { name: '野狗', lv: 1, hp: 10, ap: 1, qi: 0, draw: 1, deck: ['e_bite', 'e_bite', 'e_pounce', 'e_bark'], exp: 1, gold: [3, 5], intro: '汪！（翻譯：此路是我開。）' },
   wangsan: { name: '流氓王三', lv: 1, hp: 14, ap: 1, qi: 1, draw: 2, deck: ['quanjiao', 'quanjiao', 'gedang', 'e_popi', 'e_biaoge'], exp: 1, gold: [6, 9], intro: '「喲，要去求仙？求仙也得先交過路費！」', after: 'wangsan' },
+  dazui: { name: '李大嘴', lv: 1, hp: 13, ap: 1, qi: 1, draw: 2, deck: ['e_tiaobo', 'e_zuipao', 'e_zuipao', 'e_hanren', 'e_guazi'], exp: 1, gold: [4, 7], intro: '「聽說你要出村？你爹當年就是出了村，才落得那個下場……大家快來看啊！」', after: 'dazui' },
+  liubanxian: { name: '劉半仙', lv: 1, hp: 12, ap: 1, qi: 2, draw: 2, deck: ['e_qiazhi', 'e_xueguang', 'e_yintang', 'e_kaiguang', 'e_fuchen'], exp: 1, gold: [6, 9], intro: '「我掐指一算，你今日出村，必有血光之災。破財可消災，十兩。」', after: 'liubanxian' },
+  huangmao: { name: '精神小伙 黃毛阿杰', lv: 1, hp: 15, ap: 1, qi: 0, draw: 2, deck: ['e_shehuiyao', 'e_shuaitou', 'e_shuaitou', 'e_laotie', 'e_jiaoxiongdi'], exp: 1, gold: [5, 8], intro: '「兄弟，在這片，我阿杰說了算。」（BGM：社會搖）', after: 'huangmao' },
+  xiaokun: { name: '小坤子', lv: 2, hp: 17, ap: 1, qi: 1, draw: 2, deck: ['e_yunqiu', 'e_kuaxia', 'e_guanlan', 'e_changtiao', 'e_jinitaimei', 'quanjiao'], exp: 2, gold: [6, 10], intro: '「全民製作人們大家好，我是練習時長兩年半的個人練習生小坤子。喜歡唱、跳、Rap、籃球。」', after: 'xiaokun' },
+  boar: { name: '野豬', lv: 2, hp: 20, ap: 1, qi: 0, draw: 2, deck: ['e_chongzhuang', 'e_pizao', 'e_bite', 'e_bite'], exp: 2, gold: [4, 7], intro: '一頭獠牙比你手臂還長的野豬，正在拱你的包袱。' },
+  wolf: { name: '山狼', lv: 2, hp: 16, ap: 1, qi: 0, draw: 2, deck: ['e_bite', 'e_liya', 'e_liya', 'e_langhao'], exp: 2, gold: [4, 7], intro: '村長爺爺說的是真的——村外有狼。' },
+  snake: { name: '竹葉青', lv: 1, hp: 9, ap: 1, qi: 0, draw: 1, deck: ['e_duya', 'e_duya', 'e_chanrao'], exp: 1, gold: [3, 5], intro: '草叢裡嘶嘶作響。' },
+  monkey: { name: '野猴子', lv: 1, hp: 11, ap: 1, qi: 0, draw: 2, deck: ['e_touqian', 'e_touqian', 'e_xiangjiao', 'e_zhuanao'], exp: 1, gold: [2, 4], intro: '一隻猴子蹲在樹上，盯著你的錢袋。' },
   bandit: { name: '山賊', lv: 2, hp: 18, ap: 1, qi: 0, draw: 2, deck: ['e_dadao', 'e_dadao', 'gedang', 'e_yaohe', 'quanjiao'], exp: 2, gold: [6, 10], intro: '「此山是我栽——」「那你挺辛苦的。」' },
   qingxu: { name: '清虛道長（自稱）', lv: 2, hp: 16, ap: 1, qi: 2, draw: 2, deck: ['e_fuchen', 'e_fuchen', 'e_xiandan', 'e_tianlei', 'e_pianshu'], exp: 2, gold: [8, 12], intro: '「貧道觀你骨骼清奇，這本《如來神掌》只賣十兩……什麼？你要驗貨？」', after: 'qingxu' },
-  goose: { name: '村口大鵝', lv: 3, hp: 26, ap: 1, qi: 0, draw: 2, elite: true, deck: ['e_zhuo', 'e_zhuo', 'e_ee', 'e_zhanchi', 'e_xiang'], exp: 3, gold: [10, 15], intro: '全村最強的存在。連村長爺爺都繞著牠走。' },
+  goose: { name: '村口大鵝', lv: 3, hp: 22, ap: 1, qi: 0, draw: 2, elite: true, deck: ['e_zhuo', 'e_zhuo', 'e_ee', 'e_zhanchi', 'e_xiang'], exp: 3, gold: [10, 15], intro: '全村最強的存在。連村長爺爺都繞著牠走。' },
+  wangda: { name: '村霸 王大', lv: 2, hp: 24, ap: 1, qi: 1, draw: 2, elite: true, deck: ['e_baohufei', 'e_baohufei', 'e_hanren', 'e_biaoge', 'e_tietou', 'quanjiao'], exp: 3, gold: [12, 16], intro: '「在林家村，想出村？先問過我王大。我弟王三呢？叫他出來收錢！」' },
+  tiger: { name: '吊睛白額虎', lv: 3, hp: 30, ap: 1, qi: 0, draw: 2, elite: true, deck: ['e_hupu', 'e_huxiao', 'e_bite', 'e_liya', 'e_liya'], exp: 4, gold: [12, 16], intro: '山崗上的告示寫著：「近有大蟲傷人，過往客商務必結伴而行。」你一個人。' },
+  erdangjia: { name: '黑風寨二當家', lv: 3, hp: 28, ap: 1, qi: 1, draw: 2, elite: true, deck: ['e_dadao', 'e_dadao', 'e_feidao', 'e_tiebi', 'e_yaohe', 'e_yunqi'], exp: 4, gold: [15, 20], intro: '「大當家說了，這條路上的人，一個都不能少——都得交錢。」' },
   boss: { name: '擂台霸主 趙鐵柱', lv: 4, hp: 40, ap: 1, qi: 2, draw: 2, boss: true, deck: ['e_zhongquan', 'e_zhongquan', 'e_hengsao', 'e_tiebi', 'e_xuli', 'e_yunqi', 'e_tietou'], exp: 5, gold: [20, 20], intro: '「新人？在武道界，拳頭就是道理。上台！」' },
 };
 
@@ -190,7 +252,7 @@ const SKILLS = {
     { lv: 3, id: 'ninghen', name: '凝痕', where: 'battle', cd: 2, text: '本回合每次攻擊多刻 1 痕', use: () => { B.p.st.ninghen = 1; } },
   ],
   fushan: [
-    { lv: 1, id: 'tiegu', name: '鐵骨', where: 'map', cd: 2, text: '回復 8 生命', use: () => { G.hp = Math.min(G.maxHp, G.hp + 8); } },
+    { lv: 1, id: 'tiegu', name: '鐵骨', where: 'map', cd: 2, text: '下一場戰鬥，開局獲得 8 護甲', use: () => { G.pendingTiegu = true; } },
     { lv: 3, id: 'dingshan', name: '定山', where: 'battle', cd: 2, text: '獲得等於已損失生命一半的護甲', use: () => armor(B.p, Math.floor((B.p.maxHp - B.p.hp) / 2)) },
   ],
 };
@@ -206,11 +268,12 @@ const render = () => S();
 function newGame(name, gender) {
   G = { name, gender, maxHp: CFG.startHp, hp: CFG.startHp, apMax: CFG.startAp, baseQi: CFG.startQi, handSize: CFG.handSize,
     level: 1, exp: 0, gold: CFG.startGold, equipSlots: 0, equipped: [], school: null,
-    dao: 0, wu: 0, daoRw: false, wuRw: false, skillCd: {}, pendingTuohen: false,
+    dao: 0, wu: 0, daoRw: false, wuRw: false, skillCd: {}, pendingTuohen: false, pendingTiegu: false,
     delCount: 0, smithCount: 0, pagesDone: 0, pageDeck: [], pageShown: [], flags: {},
-    deck: ['quanjiao', 'quanjiao', 'quanjiao', 'quanjiao', 'gedang', 'gedang', 'tuna', 'tuna', 'liaoshang', 'manjin'].map(id => inst(id)) };
-  G.pageDeck = shuffle(['dog', 'dog', 'bandit', 'bandit', 'qingxu', 'goose', 'cunzhang', 'peddler', 'peddler', 'teahouse', 'smith', 'spring', 'medicine', 'bundle', 'bundle', 'fork', 'fortune']);
-  G.pageShown = ['wangsan', 'zhang', 'dog'];
+    deck: ['quanjiao', 'quanjiao', 'quanjiao', 'quanjiao', 'gedang', 'gedang', 'tuna', 'tuna', 'qijin', 'manjin'].map(id => inst(id)) };
+  G.stage = 'village';
+  G.pageDeck = withSticky(shuffle(['dazui', 'liubanxian', 'huangmao', 'xiaokun', 'cunzhang', 'wangshen', 'wangda', 'dog', 'peddler', 'teahouse', 'bundle', 'medicine']), 'gate', 4);
+  G.pageShown = ['wangsan', 'zhang', G.pageDeck.pop()];
 }
 
 /* ================= DOM ================= */
@@ -274,6 +337,11 @@ function flashCard(ci, side, who, hidden) {
 function later(fn, ms) { const bt = B; setTimeout(() => { if (B === bt && B.phase === 'enemy') fn(); }, ms); }
 function mkUnit(o) { return Object.assign({ armor: 0, qi: 0, ap: 0, hen: 0, henCap: CFG.henCap, st: {}, traps: [], hand: [], pile: [], removed: [] }, o); }
 function armor(u, n) { if (n <= 0) return; u.armor += n; log(`${u.name} 獲得 ${n} 護甲（${u.armor}）`); }
+function junk(u, id, n) {
+  if (!u.isPlayer) return;
+  for (let i = 0; i < n; i++) { const ci = inst(id); u.battleDeck.push(ci); u.pile.splice(R(u.pile.length + 1), 0, ci); }
+  log(`你的牌庫被塞進 ${n} 張【${CARDS[id].name}】`);
+}
 function heal(u, n) { const b = u.hp; u.hp = Math.min(u.maxHp, u.hp + n); log(`${u.name} 回復 ${u.hp - b} 生命`); }
 function loseHp(u, n) { if (n <= 0) return; u.hp -= n; log(`${u.name} 失去 ${n} 生命`); }
 function gainQi(u, n) { u.qi += n; log(`${u.name} 真氣 +${n}（${u.qi}）`); }
@@ -385,10 +453,12 @@ function startBattle(key, onWin) {
   log(`遭遇【${d.name}】（Lv${d.lv}）！`);
   if (d.intro) log(d.intro);
   for (const { ci, d: ed } of equippedList()) {
+    if (ed.eq.turnStart) ed.eq.turnStart(ci.up);
     if (ed.eq.battleStart) ed.eq.battleStart(ci.up);
     if (ed.eq.apMaxMod) p.apMax = Math.max(0, p.apMax + ed.eq.apMaxMod(ci.up));
   }
   if (G.pendingTuohen) { G.pendingTuohen = false; log('拓痕生效'); addHen(e, 2, p); }
+  if (G.pendingTiegu) { G.pendingTiegu = false; log('鐵骨生效'); armor(p, 8); }
   playerTurnStart();
   S = renderBattle; render();
 }
@@ -402,7 +472,9 @@ function playerTurnStart() {
   }
   p.st.fanzhen = 0; p.st.atkCount = 0; p.st.ninghen = 0; p.st.wuhen = 0;
   if (p.st.shanhun) armor(p, 4 * p.st.shanhun);
+  if (B.turn > 1) equipHook('turnStart');
   p.ap = Math.max(p.ap, p.apMax);
+  if (p.st.apDown) { p.ap = Math.max(0, p.ap - 1); p.st.apDown = 0; log('你被牽制，行動力 -1'); }
   const keep = new Set(p.hand.concat(p.removed).map(c => c.uid));
   p.pile = shuffle(p.battleDeck.filter(c => !keep.has(c.uid)));
   draw(p, G.handSize);
@@ -571,6 +643,22 @@ function eventScreen(title, lines, options) {
   render();
 }
 const EVENTS = {
+  dazui: () => eventScreen('李大嘴', ['李大嘴捂著腫起來的嘴：「我……我也是為你好！村外真的危險！」', '圍觀的村民小聲嘀咕：「這孩子，跟他爹一個倔脾氣。」'], [
+    { t: '「謝謝關心，但我還是要走。」（道心 +1）', f: () => { addDao(1); afterBattle(); } },
+    { t: '「再嚼舌根，下次打的就不是嘴了。」（武魄 +1，銀兩 +4）', f: () => { addWu(1); G.gold += 4; afterBattle(); } },
+  ]),
+  liubanxian: () => eventScreen('劉半仙', ['「別打了！我說實話，我連自己明天吃什麼都算不出來……」'], [
+    { t: '逼他把騙村民的卦金吐出來還回去（道心 +1）', f: () => { addDao(1); afterBattle(); } },
+    { t: '讓他給你「開光」（武魄 +1，隨機升級 1 張牌）', f: () => { addWu(1); const c = pick(G.deck.filter(x => !x.up), 1)[0]; if (c) { c.up = true; notice = `開光……好像真有點用：【${cname(c)}】升級了`; } afterBattle(); } },
+  ]),
+  huangmao: () => eventScreen('黃毛阿杰', ['阿杰甩了甩頭髮：「大哥！收我當小弟吧！以後這片你說了算！」'], [
+    { t: '勸他回家好好讀書（道心 +1，他塞給你 5 銀兩）', f: () => { addDao(1); G.gold += 5; afterBattle(); } },
+    { t: '讓他教你那套搖（武魄 +1，學會「社會搖」）', f: () => { addWu(1); G.deck.push(inst('shehuiyao')); afterBattle(); } },
+  ]),
+  xiaokun: () => eventScreen('小坤子', ['小坤子抱著籃球坐在地上：「你……你打球也挺厲害的。」', '「其實我也想出村，去外面當大明星。可是大家都說我不務正業。」'], [
+    { t: '陪他打一場三分球（道心 +1，學會「運球」）', f: () => { addDao(1); G.deck.push(inst('yunqiu')); afterBattle(); } },
+    { t: '沒收他的籃球（武魄 +1，獲得兵器「籃球」）', f: () => { addWu(1); G.deck.push(inst('lanqiu')); afterBattle(); } },
+  ]),
   wangsan: () => eventScreen('王三求饒', [`王三跪在地上：「${hero()}饒命！我上有八十歲老母……下有……下有一隻貓！」`], [
     { t: `饒他一命，讓他把錢吐出來（道心 +1，拿回被偷的 ${B.stolen} 銀兩，另 +3）`, f: () => { addDao(1); G.gold += B.stolen + 3; afterBattle(); } },
     { t: '搜刮一番（武魄 +1，銀兩 +8，學會「潑皮手段」）', f: () => { addWu(1); G.gold += 8 + B.stolen; G.deck.push(inst('popi')); afterBattle(); } },
@@ -585,13 +673,30 @@ const EVENTS = {
 const PAGES = {
   dog: { name: '野狗', kind: '戰鬥', desc: '一條瘦狗齜著牙擋路。', go: done => startBattle('dog', done) },
   wangsan: { name: '流氓王三', kind: '戰鬥', desc: '村口的地痞，專收「過路費」。', go: done => startBattle('wangsan', done) },
+  dazui: { name: '李大嘴', kind: '戰鬥', desc: '村口情報站站長，什麼閒話都傳。', go: done => startBattle('dazui', done) },
+  liubanxian: { name: '劉半仙', kind: '戰鬥', desc: '在村口擺攤算命的神棍。', go: done => startBattle('liubanxian', done) },
+  huangmao: { name: '黃毛阿杰', kind: '戰鬥', desc: '頂著一頭黃毛、褲腳捲起來的精神小伙。', go: done => startBattle('huangmao', done) },
+  xiaokun: { name: '小坤子', kind: '戰鬥', desc: '穿背帶褲、在曬穀場打籃球的少年。', go: done => startBattle('xiaokun', done) },
+  boar: { name: '野豬', kind: '戰鬥', desc: '林子裡傳來哼哼聲。', go: done => startBattle('boar', done) },
+  wolf: { name: '山狼', kind: '戰鬥', desc: '遠處有狼嚎。', go: done => startBattle('wolf', done) },
+  snake: { name: '竹葉青', kind: '戰鬥', desc: '草叢裡有東西在動。', go: done => startBattle('snake', done) },
+  monkey: { name: '野猴子', kind: '戰鬥', desc: '樹上有雙眼睛盯著你的錢袋。', go: done => startBattle('monkey', done) },
+  wangshen: { name: '隔壁王嬸', kind: '人物', desc: '拎著一籃雞蛋追出來的王嬸。', go: done => eventScreen('隔壁王嬸', [`「${hero()}，真要走啊？你娘昨晚哭了一宿。」`, '「外面的人心比狼還壞，你聽嬸一句，留下來吧。」'], [
+    { t: '收下她的心意，答應一定會回來（道心 +1，獲得「燒餅」）', f: () => { addDao(1); G.deck.push(inst('shaobing')); done(); } },
+    { t: '「嬸，我爹的事，總要有人去問。」（武魄 +1，生命上限 +3）', f: () => { addWu(1); G.maxHp += 3; G.hp += 3; done(); } },
+  ]) },
   bandit: { name: '山賊', kind: '戰鬥', desc: '扛著大刀的壯漢。', go: done => startBattle('bandit', done) },
   qingxu: { name: '清虛道長', kind: '戰鬥', desc: '路邊擺攤賣「仙法秘笈」的道士。', go: done => startBattle('qingxu', done) },
   goose: { name: '村口大鵝', kind: '精英', desc: '全村最強。', go: done => startBattle('goose', done) },
+  wangda: { name: '村霸 王大', kind: '精英', desc: '王三他哥，村裡沒人敢惹。', go: done => startBattle('wangda', done) },
+  tiger: { name: '吊睛白額虎', kind: '精英', desc: '山崗上立著一塊告示牌。', go: done => startBattle('tiger', done) },
+  erdangjia: { name: '黑風寨二當家', kind: '精英', desc: '路邊插著一面黑風寨的旗子。', go: done => startBattle('erdangjia', done) },
+  gate: { name: '村口', kind: '劇情', desc: '村民都在村口等你。選了就出村（必打村口大鵝），村裡剩下的書頁不再回來。', sticky: true, go: () => { G.pagesDone++; villageGate(); } },
+  finale: { name: '武道大比', kind: '首領', desc: '擂台霸主 趙鐵柱。選了就去大比：拜師選流派、打首領，打完第一章結束。', sticky: true, go: () => { G.pagesDone++; tournament(); } },
   zhang: { name: '賣包子的張大哥', kind: '人物', desc: '熱氣騰騰的包子攤。', go: done => {
     const free = G.flags.beat_wangsan;
     eventScreen('賣包子的張大哥', [free ? `「${hero()}！聽說你把王三那潑皮收拾了？這籠包子算我的！」` : `「${hero()}要去求仙？仙人哪有包子實在，來一籠？」`], [
-      { t: free ? '收下包子（回復 12 生命）' : '買一籠肉包（5 銀兩，回復 12 生命）', dis: !free && G.gold < 5, f: () => { if (!free) G.gold -= 5; G.hp = Math.min(G.maxHp, G.hp + 12); done(); } },
+      { t: free ? '收下包子（回復 4 生命）' : '買一籠肉包（5 銀兩，回復 4 生命）', dis: !free && G.gold < 5, f: () => { if (!free) G.gold -= 5; G.hp = Math.min(G.maxHp, G.hp + 4); done(); } },
       { t: '幫他看半天攤（道心 +1，獲得「熱包子」）', f: () => { addDao(1); G.deck.push(inst('baozi')); done(); } },
       { t: '離開', f: done },
     ]);
@@ -605,8 +710,8 @@ const PAGES = {
   peddler: { name: '遊方貨郎', kind: '商店', desc: '什麼都賣，什麼都不保真。', go: done => shopScreen(done) },
   teahouse: { name: '老茶館', kind: '設施', desc: '說書先生能幫你「忘掉」一招（刪卡）。', go: done => pickCardScreen('老茶館・刪卡', `刪除一張牌（${G.delCount ? `${G.delCount * 10} 銀兩` : '第一次免費'}）`, () => G.deck, G.delCount * 10, ci => { G.gold -= G.delCount * 10; G.delCount++; if (G.equipped.includes(ci.uid)) G.equipped = G.equipped.filter(x => x !== ci.uid); G.deck = G.deck.filter(c => c !== ci); notice = `刪除了【${cname(ci)}】`; }, done) },
   smith: { name: '鐵匠鋪', kind: '設施', desc: '老鐵匠能幫你把一招練得更純熟（升級卡）。', go: done => pickCardScreen('鐵匠鋪・升級', `升級一張牌（${G.smithCount ? `${G.smithCount * 5} 銀兩` : '第一次免費'}）`, () => G.deck.filter(c => !c.up), G.smithCount * 5, ci => { G.gold -= G.smithCount * 5; G.smithCount++; ci.up = true; notice = `升級了【${cname(ci)}】`; }, done) },
-  spring: { name: '山泉', kind: '設施', desc: '清涼的泉水。', go: done => eventScreen('山泉', ['泉水清冽，喝一口神清氣爽。'], [{ t: '休息（生命回滿）', f: () => { G.hp = G.maxHp; done(); } }, { t: '離開', f: done }]) },
-  medicine: { name: '金瘡藥', kind: '寶物', desc: '路邊撿到的藥。', go: done => eventScreen('金瘡藥', ['一瓶沒開封的金瘡藥。'], [{ t: '用掉（回復 10 生命）', f: () => { G.hp = Math.min(G.maxHp, G.hp + 10); done(); } }, { t: '離開', f: done }]) },
+  spring: { name: '山泉', kind: '設施', desc: '清涼的泉水。', go: done => eventScreen('山泉', ['泉水清冽，喝一口神清氣爽。'], [{ t: '喝幾口（回復 3 生命）', f: () => { G.hp = Math.min(G.maxHp, G.hp + 3); done(); } }, { t: '離開', f: done }]) },
+  medicine: { name: '金瘡藥', kind: '寶物', desc: '路邊撿到的藥。', go: done => eventScreen('金瘡藥', ['一瓶沒開封的金瘡藥。'], [{ t: '用掉（回復 5 生命）', f: () => { G.hp = Math.min(G.maxHp, G.hp + 5); done(); } }, { t: '離開', f: done }]) },
   bundle: { name: '包袱', kind: '寶物', desc: '不知誰落下的包袱。', go: done => {
     const ids = pick(cardPool(), 3);
     eventScreen('包袱', ['裡面有幾本手抄的拳譜。'], ids.map(id => ({ t: `【${CARDS[id].name}】${stars(CARDS[id])}〔${CARDS[id].type}〕${CARDS[id].text(false)}`, f: () => { G.deck.push(inst(id)); done(); } })).concat([{ t: '都不要，拿走裡面的 6 銀兩', f: () => { G.gold += 6; done(); } }]));
@@ -618,6 +723,10 @@ const PAGES = {
     { t: '兵器槽 +1', f: () => { G.equipSlots += 1; done(); } },
   ]) },
 };
+function withSticky(deck, key, minFlips) {
+  deck.splice(R(Math.max(1, deck.length - minFlips + 1)), 0, key);
+  return deck;
+}
 function completePage(idx) {
   G.pagesDone++;
   G.pageShown[idx] = G.pageDeck.length ? G.pageDeck.pop() : null;
@@ -625,21 +734,34 @@ function completePage(idx) {
 }
 function takeFork(idx) {
   G.pagesDone++;
-  const others = G.pageShown.filter((k, i) => i !== idx && k);
+  const keep = G.pageShown.map((k, i) => (i !== idx && k && PAGES[k].sticky ? k : null));
+  const others = G.pageShown.filter((k, i) => i !== idx && k && !PAGES[k].sticky);
   G.pageDeck = shuffle(G.pageDeck.concat(others));
-  G.pageShown = [0, 1, 2].map(() => (G.pageDeck.length ? G.pageDeck.pop() : null));
+  G.pageShown = keep.map(k => k || (G.pageDeck.length ? G.pageDeck.pop() : null));
   notice = '你換了一條路。';
   mapScreen();
 }
+function villageGate() {
+  eventScreen('村口', ['你背著包袱走到村口，身後跟了半個村子的人。', '村長爺爺拄著拐杖：「真要走？村外有狼、有山賊，前年李家二小子出去，回來就剩一隻鞋了。」', '張大哥塞給你一袋包子：「外頭的包子，沒我的好吃。」', '話還沒說完，一聲鵝叫劃破長空——村口大鵝張開翅膀，擋住了唯一的出路。'], [
+    { t: '想出村，先過大鵝這關！', f: () => startBattle('goose', leaveVillage) },
+  ]);
+}
+function leaveVillage() {
+  G.stage = 'wild';
+  G.pageDeck = withSticky(shuffle(['dog', 'dog', 'boar', 'boar', 'wolf', 'wolf', 'snake', 'snake', 'monkey', 'monkey', 'bandit', 'bandit', 'qingxu', 'tiger', 'erdangjia',
+    'peddler', 'peddler', 'teahouse', 'smith', 'smith', 'spring', 'spring', 'medicine', 'bundle', 'bundle', 'fork', 'fortune']), 'finale', 6);
+  G.pageShown = [0, 1, 2].map(() => G.pageDeck.pop());
+  notice = '大鵝讓開了路。你回頭看了一眼村子，踏上了村外的土路。';
+  mapScreen();
+}
 function mapScreen() {
-  const final = G.pagesDone >= CFG.pagesBeforeFinal || G.pageShown.every(k => !k);
+  const village = G.stage === 'village';
   const mapSkills = (G.school ? SKILLS[G.school] : []).filter(s => s.where === 'map' && G.level >= s.lv);
   S = () => {
-    const pages = final ? [h('button', { cls: 'page', onclick: tournament }, h('div', { cls: 'n' }, '【劇情】武道大比'), h('div', { cls: 'dim' }, '凡人界的盡頭，武道界的入口。'))]
-      : G.pageShown.map((k, i) => k ? h('button', { cls: 'page', onclick: () => (PAGES[k].fork ? takeFork(i) : PAGES[k].go(() => completePage(i))) },
+    const pages = G.pageShown.map((k, i) => k ? h('button', { cls: 'page', onclick: () => (PAGES[k].fork ? takeFork(i) : PAGES[k].go(() => completePage(i))) },
         h('div', { cls: 'n' }, `【${PAGES[k].kind}】${PAGES[k].name}`), h('div', { cls: 'dim' }, PAGES[k].desc)) : null);
-    show(h('h2', null, '第一章　凡人界・求仙'),
-      h('div', { cls: 'dim' }, `旅途 ${Math.min(G.pagesDone, CFG.pagesBeforeFinal)}/${CFG.pagesBeforeFinal}　剩餘旅途頁 ${G.pageDeck.length}`),
+    show(h('h2', null, `第一章　凡人界・求仙　—　${village ? '林家村' : '村外'}`),
+      h('div', { cls: 'dim' }, `已走 ${G.pagesDone} 頁　${village ? '林家村' : '村外'}還剩 ${G.pageDeck.length + G.pageShown.filter(k => k).length} 頁　${village ? '「村口」' : '「武道大比」'}一出現就能選，也可以先把其他書頁走完`),
       notice ? h('div', { cls: 'box' }, notice) : null,
       h('div', { cls: 'box' }, h('div', null, '選一頁前進：'), pages),
       h('div', { cls: 'box' }, btn('查看牌組／裝備兵器', () => deckScreen(mapScreen)),
@@ -669,11 +791,9 @@ function pickCardScreen(title, desc, listFn, price, apply, done) {
 }
 function shopScreen(done) {
   const stock = pick(cardPool(), 3).map(id => ({ id, sold: false }));
-  let pill = false;
   S = () => show(h('h2', null, '遊方貨郎'), say('「走過路過不要錯過！正宗少林……呃，正宗拳譜！」'),
     h('div', { cls: 'box' }, stock.map(s => { const p = CFG.price[CARDS[s.id].star];
       return cardBox(inst(s.id), () => { G.gold -= p; s.sold = true; G.deck.push(inst(s.id)); render(); }, s.sold || G.gold < p, s.sold ? '［已售］' : `${p}兩・`); })),
-    h('div', { cls: 'box' }, btn('金瘡藥（8 銀兩，回復 10 生命）', () => { G.gold -= 8; pill = true; G.hp = Math.min(G.maxHp, G.hp + 10); render(); }, pill || G.gold < 8)),
     btn('離開', done));
   render();
 }
@@ -706,13 +826,19 @@ function blessingScreen() {
     { t: '舊扁擔：兵器槽 +1，獲得「扁擔」並裝上', f: () => { G.equipSlots += 1; const c = inst('biandan'); G.deck.push(c); G.equipped.push(c.uid); } },
     { t: '娘縫的護身符：升級 2 張起始牌', f: () => { pick(G.deck.filter(c => !c.up), 2).forEach(c => { c.up = true; }); } },
   ], 3);
-  S = () => show(h('h2', null, '出發前'), say('收拾行囊時，你找到了幾樣東西。只能帶走一樣。'), h('div', { cls: 'box' }, opts.map(o => btn(o.t, () => { o.f(); mapScreen(); }))));
+  S = () => show(h('h2', null, '出發前'), say('收拾行囊時，你找到了幾樣東西。只能帶走一樣。'), h('div', { cls: 'box' }, opts.map(o => btn(o.t, () => { o.f(); prologue(); }))));
   render();
 }
+function prologue() {
+  eventScreen('臨行前夜', ['你要去找天宗的消息，一個晚上就傳遍了全村。', '娘坐在燈下縫衣服，針扎了三次手：「你爹就是出去了，才……」', '門外擠滿了人。有人說村外有吃人的妖怪，有人說求仙的都是騙子，還有人說：「這孩子是被他爹的瘋話害了。」'], [
+    { t: '「娘，我會回來的。」（道心 +1）', f: () => { addDao(1); mapScreen(); } },
+    { t: '「爹的事，我一定要問個明白。」（武魄 +1）', f: () => { addWu(1); mapScreen(); } },
+  ]);
+}
 function quickStart() {
-  G.level = 3; G.exp = 7; G.maxHp = 36; G.hp = 36; G.handSize = 4; G.gold = 30; G.baseQi = 2;
+  G.stage = 'wild';
+  G.level = 3; G.exp = 7; G.maxHp = 26; G.hp = 26; G.handSize = 4; G.gold = 30; G.baseQi = 2;
   ['feiti', 'zhamabu', 'shenhuxi'].forEach(id => G.deck.push(inst(id)));
-  G.pagesDone = CFG.pagesBeforeFinal;
   tournament();
 }
 function tournament() {
