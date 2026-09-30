@@ -1,0 +1,26 @@
+body{background:#14110f;color:#e8e0d0;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;margin:0;padding:12px;line-height:1.6}
+#app{max-width:900px;margin:0 auto}
+h1,h2,h3{margin:.4em 0;color:#f0c674}
+button{background:#2a241f;color:#e8e0d0;border:1px solid #6b5a45;border-radius:6px;padding:6px 10px;margin:3px;cursor:pointer;font:inherit}
+button:hover:not(:disabled){background:#3b3229;border-color:#f0c674}
+button:disabled{opacity:.4;cursor:default}
+.card{display:inline-block;vertical-align:top;width:190px;min-height:84px;text-align:left;white-space:normal}
+.card .t{font-size:.82em;color:#b9a88f}
+.card .n{font-weight:bold}
+.page{display:inline-block;vertical-align:top;width:250px;min-height:90px;text-align:left}
+.box{border:1px solid #3d342b;border-radius:8px;padding:8px 12px;margin:8px 0;background:#1b1714}
+.log{font-size:.9em;color:#c9bca6;max-height:280px;overflow:auto;white-space:pre-wrap}
+.hp{color:#e06c75}.qi{color:#61afef}.ap{color:#e5c07b}.hen{color:#c678dd}.arm{color:#98c379}.gold{color:#e5c07b}
+.dim{color:#8a7d6b;font-size:.9em}
+.bar span{margin-right:14px}
+.say{border-left:3px solid #6b5a45;padding-left:10px;margin:8px 0}
+.stage{position:fixed;left:0;right:0;top:28%;display:grid;justify-content:center;pointer-events:none;z-index:10}
+.fcard{grid-area:1/1;position:relative;width:200px;min-height:120px;padding:10px 12px;border-radius:10px;background:#2a211a;border:2px solid #f0c674;box-shadow:0 0 24px rgba(240,198,116,.45);animation:fin .25s ease-out}
+.fcard.foe{border-color:#e06c75;box-shadow:0 0 24px rgba(224,108,117,.5)}
+.fcard.back{background:repeating-linear-gradient(45deg,#2a211a 0 8px,#221a14 8px 16px)}
+.fcard .who{font-size:.78em;color:#b9a88f}.fcard .n{font-weight:bold;font-size:1.15em;color:#f0c674}.fcard .t{font-size:.82em;color:#b9a88f}
+.fcard.ash{animation:burn .9s ease-in forwards}
+.ashp{position:absolute;width:5px;height:5px;border-radius:50%;background:#ffb35c;box-shadow:0 0 6px #ff8a2a;opacity:0;animation:fly 1s ease-out forwards}
+@keyframes fin{from{transform:scale(.6) translateY(30px);opacity:0}to{transform:none;opacity:1}}
+@keyframes burn{0%{filter:none}35%{filter:sepia(1) saturate(3) brightness(1.3);box-shadow:0 0 30px #ff8a2a}100%{filter:grayscale(1) brightness(.3) blur(3px);opacity:0;transform:translateY(-24px) scale(1.04)}}
+@keyframes fly{0%{opacity:1;transform:none}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3);background:#555}}

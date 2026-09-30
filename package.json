@@ -1,0 +1,19 @@
+{
+  "name": "heavenfall",
+  "private": true,
+  "version": "0.1.0",
+  "description": "天宗棄徒 — 修仙題材 roguelike 卡牌構築遊戲（第一章文字版 demo）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:single": "vite build --mode single",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vite": "^8.3.1",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^5.0.3"
+  }
+}
