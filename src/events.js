@@ -1,7 +1,7 @@
 /* ================= 事件 =================
    戰後劇情事件（敵人的 after 事件）。通用事件畫面 + 選項。
 */
-import { B, G, hero, render, setNotice, setS } from './state.js';
+import { G, hero, render, setNotice, setS } from './state.js';
 import { inst, pick } from './utils.js';
 import { CARDS, cardPool, cname } from './cards/index.js';
 import { btn, h, say, show } from './ui/dom.js';
@@ -29,8 +29,8 @@ export const EVENTS = {
     { t: '沒收他的籃球（武魄 +1，獲得兵器「籃球」）', f: () => { addWu(1); G.deck.push(inst('lanqiu')); afterBattle(); } },
   ]),
   wangsan: () => eventScreen('王三求饒', [`王三跪在地上：「${hero()}饒命！我上有八十歲老母……下有……下有一隻貓！」`], [
-    { t: `饒他一命，讓他把錢吐出來（道心 +1，拿回被偷的 ${B.stolen} 銀兩，另 +3）`, f: () => { addDao(1); G.gold += B.stolen + 3; afterBattle(); } },
-    { t: '搜刮一番（武魄 +1，銀兩 +8，學會「潑皮手段」）', f: () => { addWu(1); G.gold += 8 + B.stolen; G.deck.push(inst('popi')); afterBattle(); } },
+    { t: '饒他一命（道心 +1，他感動得塞給你 3 銀兩）', f: () => { addDao(1); G.gold += 3; afterBattle(); } },
+    { t: '搜刮一番（武魄 +1，銀兩 +8，學會「潑皮手段」）', f: () => { addWu(1); G.gold += 8; G.deck.push(inst('popi')); afterBattle(); } },
     ...(G.flags.met_wangmama ? [{ t: '把娘的話帶給他：「醬菜給你留著。」（道心 +1，他交出 5 銀兩）', f: () => { addDao(1); G.gold += 5; afterBattle(); } }] : []),
   ]),
   wangda: () => eventScreen('村霸落敗', ['王大趴在地上，嘴裡還不服：「打我？你知不知道我堂哥在外頭跑江湖，專門騙你們這種想出村的。他要是碰上你，你就完了。」', '你問堂哥是誰。王大啐了一口：「道上叫他清虛道長——狗屁道長，他叫王二狗！」'], [

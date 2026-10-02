@@ -51,6 +51,7 @@ export function cardBox(ci, onclick, dis, prefix) {
 export const FX = { hold: 700, step: 1100 };
 let $stage = null;
 export function flashCard(ci, side, who, hidden) {
+  if (typeof document === 'undefined') return;
   if (!$stage) { $stage = document.createElement('div'); $stage.className = 'stage'; document.body.append($stage); }
   const d = CARDS[ci.id];
   const el = hidden
@@ -68,3 +69,21 @@ export function flashCard(ci, side, who, hidden) {
 }
 /* 延遲執行：只在本場戰鬥仍是敵方回合時才生效（換場/回合結束自動作廢） */
 export function later(fn, ms) { const bt = B; setTimeout(() => { if (B === bt && B.phase === 'enemy') fn(); }, ms); }
+
+/* ---- 卡牌懸浮提示（戰鬥日誌等處的【卡牌名】） ---- */
+let $tip = null;
+export function bindTip(el, id, up) {
+  el.onmouseenter = () => {
+    if (!$tip) { $tip = document.createElement('div'); $tip.className = 'ctip'; document.body.append($tip); }
+    const d = CARDS[id];
+    $tip.replaceChildren(
+      h('div', { cls: 'n' }, d.name + (up ? '+' : '')),
+      h('div', { cls: 't' }, `〔${d.type}〕${stars(d)}`),
+      h('div', null, d.text(up)));
+    $tip.style.display = 'block';
+    const r = el.getBoundingClientRect();
+    $tip.style.left = Math.max(4, Math.min(r.left, window.innerWidth - $tip.offsetWidth - 8)) + 'px';
+    $tip.style.top = (r.top - $tip.offsetHeight - 8 > 0 ? r.top - $tip.offsetHeight - 8 : r.bottom + 8) + 'px';
+  };
+  el.onmouseleave = () => { if ($tip) $tip.style.display = 'none'; };
+}

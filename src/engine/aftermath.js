@@ -16,11 +16,11 @@ export function winBattle() {
   const d = B.def;
   G.hp = Math.max(1, B.p.hp);
   const gold = d.gold[0] + R(d.gold[1] - d.gold[0] + 1);
-  G.gold += gold; G.exp += d.exp;
+  G.gold += gold + B.stolen; G.exp += d.exp;
   for (const k in G.skillCd) if (G.skillCd[k] > 0) G.skillCd[k]--;
   G.flags['beat_' + B.key] = true;
-  setS(() => show(h('h2', null, `擊敗了 ${d.name}！`), h('div', { cls: 'box log' }, B.log.slice(-8).join('\n')),
-    para(`獲得經驗 ${d.exp}、銀兩 ${gold}。`), btn('繼續', lootScreen)));
+  setS(() => show(h('h2', null, `擊敗了 ${d.name}！`), h('div', { cls: 'box log' }, B.log.slice(-8).map(l => l.s).join('\n')),
+    para(`獲得經驗 ${d.exp}、銀兩 ${gold}${B.stolen ? `，並拿回被摸走的 ${B.stolen} 銀兩` : ''}。`), btn('繼續', lootScreen)));
   render();
 }
 export function afterBattle() {
@@ -45,7 +45,7 @@ function levelUp() {
   render();
 }
 export function gameOver() {
-  setS(() => show(h('h2', null, '你倒下了'), h('div', { cls: 'box log' }, B.log.slice(-10).join('\n')),
+  setS(() => show(h('h2', null, '你倒下了'), h('div', { cls: 'box log' }, B.log.slice(-10).map(l => l.s).join('\n')),
     para(`${G.name} 在第一章走了 ${G.pagesDone} 頁。父親的遺願……還沒完成。`), btn('重新開始', titleScreen)));
   render();
 }
