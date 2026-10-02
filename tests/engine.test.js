@@ -4,7 +4,8 @@ import { setB, setG } from '../src/state.js';
 import { CFG } from '../src/config.js';
 import { inst } from '../src/utils.js';
 import {
-  addHen, armor, attack, canPlay, draw, mkUnit, resolveCard, sweepHand, zhan,
+  addHen, armor, attack, canPlay, draw, mkUnit, resolveCard, sweepHand,
+  turnStartTick, zhan,
 } from '../src/engine/combat.js';
 
 const me = () => mkUnit({ name: '我', isPlayer: true, apMax: 3, ap: 3, qi: 9, maxHp: 20, hp: 20, battleDeck: [] });
@@ -106,5 +107,50 @@ describe('卡牌效果', () => {
     expect(e.ap).toBe(0);
     expect(e.st.apDown).toBe(2);
     expect(e.hp).toBeLessThan(30);   // 基礎 + 打散加成
+  });
+});
+
+describe('咒術機制', () => {
+  it('天音咒：吟唱 2 回合後穿刺爆發', () => {
+    const e = foe(); e.armor = 9;
+    e.st.delayed = { t: 2, d: 12 };
+    turnStartTick(e);
+    expect(e.hp).toBe(30);
+    expect(e.st.delayed.t).toBe(1);
+    turnStartTick(e);
+    expect(e.hp).toBe(18);           // 穿刺，護甲不擋
+    expect(e.st.delayed).toBe(0);
+  });
+  it('小周天：每回合開始真氣 +1 共 N 回合', () => {
+    const e = foe(); e.st.qiRegen = [1, 2];
+    turnStartTick(e);
+    expect(e.qi).toBe(1);
+    expect(e.st.qiRegen).toEqual([1, 1]);
+    turnStartTick(e);
+    expect(e.qi).toBe(2);
+    expect(e.st.qiRegen).toBe(0);
+  });
+  it('迴響：神通打出後回到手牌（只作用一次，自身不回彈）', () => {
+    const p = me(), e = foe();
+    p.st.echo = 1;
+    const ci = inst('qijin');
+    resolveCard(p, e, ci);
+    expect(p.hand[p.hand.length - 1]).toBe(ci);
+    expect(p.st.echo).toBe(0);
+    // 迴響咒自己不該把自己彈回來
+    const p2 = me(), e2 = foe();
+    resolveCard(p2, e2, inst('huixiang'));
+    expect(p2.st.echo).toBe(1);
+    expect(p2.hand.length).toBe(0);
+  });
+  it('五雷轟頂：真氣 ≥3 才能打，傾瀉全部真氣', () => {
+    const p = me(), e = foe();
+    p.qi = 2;
+    expect(canPlay(p, e, inst('wuji'))).toBe(false);
+    p.qi = 5;
+    expect(canPlay(p, e, inst('wuji'))).toBe(true);
+    resolveCard(p, e, inst('wuji'));
+    expect(p.qi).toBe(0);
+    expect(e.hp).toBe(30 - 5 * 2);   // 未升級每點 2 傷
   });
 });

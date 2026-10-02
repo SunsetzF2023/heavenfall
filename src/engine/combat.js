@@ -8,9 +8,13 @@
      poison     中毒：自己回合開始受 X 傷，層數 -1
      burn       燒傷：每使用一張牌受 X 穿刺傷，層數 -2
      doom       血光之災：自己回合開始 -1，歸零即死
+     delayed    吟唱：{t,d} 自己回合開始 t-1，歸零吃 d 穿刺傷
+     qiRegen    周天：[n,回合數] 自己回合開始真氣 +n
+     echo       迴響：下一張神通打出後回到手牌
      drawDown   下回合抽牌 -X（抽牌環節結算一次）
      drawDiscard 抽牌後隨機丟 1 張手牌（本場移除）
      dmgUp      本回合造成傷害 +X
+     dmgScale   敵人成長：每次攻擊的第一下 +X
      noDraw     （保留）
 */
 import { R, inst } from '../utils.js';
@@ -64,6 +68,16 @@ export function turnStartTick(u) {
     u.st.doom--;
     if (u.st.doom <= 0) { u.hp = 0; log(`血光之災降臨！${u.name} 氣絕`); }
     else log(`血光之災纏身：還剩 ${u.st.doom} 回合`);
+  }
+  if (u.st.delayed) {
+    u.st.delayed.t--;
+    if (u.st.delayed.t <= 0) { log(`天音降下！`); applyDamage(null, u, u.st.delayed.d, true); u.st.delayed = 0; }
+    else log(`天音迴盪：還剩 ${u.st.delayed.t} 回合`);
+  }
+  if (u.st.qiRegen) {
+    const [n, t] = u.st.qiRegen;
+    gainQi(u, n);
+    u.st.qiRegen = t > 1 ? [n, t - 1] : 0;
   }
 }
 /* 每打一張牌後的燒傷結算 */
@@ -170,7 +184,9 @@ export function resolveCard(me, foe, ci) {
   }
   const ctx = { me, foe, u: ci.up, ci,
     atk(base, o) { const r = attack(me, foe, base, Object.assign({ mods, bonus, weapon }, o || {})); mods = {}; bonus = 0; return r; } };
+  const echoMe = d.type === '神通' && !d.exile && me.st.echo;
   d.play(ctx);
+  if (echoMe) { me.st.echo = 0; me.hand.push(ci); log(`迴響！【${cname(ci)}】回到手牌`, ci); }
   if (weapon) {
     if (me.st.nextHen) { const n = me.st.nextHen; me.st.nextHen = 0; addHen(foe, n, me); }
     if (me.isPlayer && me.st.atkCount === 1) { const n = equipSum('firstAtkHen'); if (n) addHen(foe, n, me); }

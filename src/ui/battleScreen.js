@@ -47,6 +47,9 @@ export function renderBattle() {
     if (u.st.poison) s.push(`中毒${u.st.poison}`);
     if (u.st.burn) s.push(`燒傷${u.st.burn}`);
     if (u.st.doom) s.push(`血光之災${u.st.doom}回合`);
+    if (u.st.delayed) s.push(`天音${u.st.delayed.t}回合後爆發${u.st.delayed.d}傷`);
+    if (u.st.qiRegen) s.push(`周天：回合始真氣+${u.st.qiRegen[0]}×${u.st.qiRegen[1]}`);
+    if (u.st.echo) s.push('迴響');
     if (u.st.silenced) s.push('下一張牌被震懾');
     if (u.st.dmgUp) s.push(`傷害+${u.st.dmgUp}`);
     if (u.xihen) s.push('吸痕');

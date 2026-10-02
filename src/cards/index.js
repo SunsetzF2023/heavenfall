@@ -19,6 +19,7 @@ export const COMMON_POOL = [
   'zhuantou', 'zonghuo', 'jili', 'duye', 'konghe', 'lueduo',
   'xuemeigui', 'yuejizhen', 'ezuoju', 'ganbei', 'zaji', 'chongfeng', 'xianxue', 'kanjianni',
   'mudun', 'duanjian', 'fadima',
+  'xiaozhoutian', 'luolei', 'tianyin', 'wuji', 'huixiang',
 ];
 export const schoolPool = s => Object.keys(CARDS).filter(k => CARDS[k].school === s);
 export const cardPool = () => COMMON_POOL.concat(G.school ? schoolPool(G.school) : []);
